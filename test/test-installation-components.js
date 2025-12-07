@@ -138,19 +138,48 @@ async function runTests() {
   console.log(`${colors.yellow}Test Suite 3: Path Variable Resolution${colors.reset}\n`);
 
   try {
-    const builder = new YamlXmlBuilder();
+    const { resolvePath } = require('../tools/cli/lib/agent/installer');
 
-    // Test path resolution logic (if exposed)
-    // This would test {project-root}, {installed_path}, {config_source} resolution
+    const context = {
+      projectRoot: '/tmp/my-project',
+      bmadFolder: '/tmp/my-project/.bmad',
+      installedPath: '/tmp/my-project/.bmad/bmm/workflows/example',
+    };
 
-    const testPath = '{project-root}/bmad/bmm/config.yaml';
-    const expectedPattern = /\/bmad\/bmm\/config\.yaml$/;
-
+    const resolvedProjectRoot = resolvePath('{project-root}/bmad/config.yaml', context);
     assert(
-      true, // Placeholder - would test actual resolution
-      'Path variable resolution pattern matches expected format',
-      'Note: This test validates path resolution logic exists',
+      resolvedProjectRoot === '/tmp/my-project/bmad/config.yaml',
+      'Resolves {project-root} token to absolute project path',
+      `Expected '/tmp/my-project/bmad/config.yaml' but got '${resolvedProjectRoot}'`,
     );
+
+    const resolvedBmadFolder = resolvePath('{bmad-folder}/core/tasks/workflow.xml', context);
+    assert(
+      resolvedBmadFolder === '/tmp/my-project/.bmad/core/tasks/workflow.xml',
+      'Resolves {bmad-folder} token to BMAD folder path',
+      `Expected '/tmp/my-project/.bmad/core/tasks/workflow.xml' but got '${resolvedBmadFolder}'`,
+    );
+
+    const resolvedBmadFolderUnderscore = resolvePath('{bmad_folder}/core/config.yaml', context);
+    assert(
+      resolvedBmadFolderUnderscore === '/tmp/my-project/.bmad/core/config.yaml',
+      'Resolves {bmad_folder} token variant to BMAD folder path',
+      `Expected '/tmp/my-project/.bmad/core/config.yaml' but got '${resolvedBmadFolderUnderscore}'`,
+    );
+
+    const resolvedInstalledPath = resolvePath('{installed_path}/template.md', context);
+    assert(
+      resolvedInstalledPath === '/tmp/my-project/.bmad/bmm/workflows/example/template.md',
+      'Resolves {installed_path} token to installed workflow path',
+      `Expected '/tmp/my-project/.bmad/bmm/workflows/example/template.md' but got '${resolvedInstalledPath}'`,
+    );
+
+    try {
+      resolvePath('{unknown_token}/file.md', context);
+      assert(false, 'Unknown tokens throw an error');
+    } catch (error) {
+      assert(error.message.includes('Unknown path tokens'), 'Unknown tokens produce clear errors');
+    }
   } catch (error) {
     assert(false, 'Path resolution works', error.message);
   }

@@ -42,7 +42,27 @@ function findBmadConfig(startPath = process.cwd()) {
  * @returns {string} Resolved path
  */
 function resolvePath(pathStr, context) {
-  return pathStr.replaceAll('{project-root}', context.projectRoot).replaceAll('{bmad-folder}', context.bmadFolder);
+  const tokenMap = {
+    '{project-root}': context.projectRoot,
+    '{bmad-folder}': context.bmadFolder,
+    '{bmad_folder}': context.bmadFolder,
+    '{installed_path}': context.installedPath,
+  };
+
+  let resolved = pathStr;
+
+  for (const [token, value] of Object.entries(tokenMap)) {
+    if (value !== undefined) {
+      resolved = resolved.replaceAll(token, value);
+    }
+  }
+
+  const leftoverTokens = resolved.match(/\{[^}]+\}/g);
+  if (leftoverTokens) {
+    throw new Error(`Unknown path tokens: ${leftoverTokens.join(', ')}`);
+  }
+
+  return resolved;
 }
 
 /**
